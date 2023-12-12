@@ -39,6 +39,7 @@ _start:
 
     // set top of stack just before our code (stack grows to a lower address per AAPCS64)
     ldr     x1, =_start
+    //mov     sp, x1
 
     // set up EL1
     mrs     x0, CurrentEL
@@ -57,7 +58,8 @@ _start:
     eret
 
     // running at EL2?
-5:  cmp     x0, #4
+5:  //b       5f
+    cmp     x0, #4
     beq     5f
     msr     sp_el1, x1
     // enable CNTP for EL1
@@ -77,7 +79,9 @@ _start:
     msr     elr_el2, x2
     eret
 
-5:  mov     sp, x1
+5:  //mov     sp, x1
+    bl      el1_to_el0
+
 
     // clear bss
     ldr     x1, =__bss_start
@@ -91,3 +95,11 @@ _start:
 4:  bl      main
     // for failsafe, halt this core too
     b       1b
+
+el1_to_el0:
+    //mov x0, #(1 << 31) // EL1 uses aarch64
+    // msr hcr_el1, x0
+    mov x0, #0x3c0 // EL0t (SPSel = 0) with interrupt disabled
+    msr spsr_el1, x0
+    msr elr_el1, lr
+    eret // return to EL0
